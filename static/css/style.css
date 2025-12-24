@@ -1,0 +1,66 @@
+/* 背景設定 */
+body.upload-page {
+    background-image: url("../assets/upload_bg.png");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center -60px;
+    font-family: "Microsoft JhengHei", sans-serif;
+}
+
+body.form-page {
+    background-image: url("../assets/form_bg.png");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center -40px;
+    font-family: "Microsoft JhengHei", sans-serif;
+}
+
+/* 表單區塊 */
+.upload-box {
+    background: rgba(255,255,255,0.9);
+    padding: 40px;
+    margin: 170px auto; /* 往下移整個表單區塊 */
+    width: 420px;
+    border-radius: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+/* 插圖樣式 */
+.upload-icon img {
+    width: 100px;
+    height: auto;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.upload-icon img:hover {
+    transform: scale(1.05);
+}
+
+/* 表單元素 */
+input, select {
+    margin: 10px 0;
+    padding: 10px;
+    width: 90%;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    font-size: 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+button:hover {
+    background-color: #45a049;
+}

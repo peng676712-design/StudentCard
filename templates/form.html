@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>填寫學生資料</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="form-page">
+    <div class="form-box">
+        <h1>學生資料表單</h1>
+        <form action="/generate" method="post" enctype="multipart/form-data">
+            <label>姓名：</label>
+            <input type="text" name="name" required><br>
+
+            <label>學號：</label>
+            <input type="text" name="student_id" value="{{ student_id }}" readonly><br>
+
+            <label>系所：</label>
+            <input type="text" name="dept" required><br>
+
+            <label>性別：</label>
+            <select name="gender" required>
+                <option value="男">男</option>
+                <option value="女">女</option>
+            </select><br>
+
+            <label>上傳照片：</label>
+            <input type="file" name="photo" accept="image/*" required><br>
+
+            <button type="submit">生成學生證</button>
+        </form>
+    </div>
+</body>
+</html>
