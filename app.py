@@ -3,7 +3,6 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import textwrap
-from pyzbar.pyzbar import decode
 
 app = Flask(__name__)
 
@@ -32,13 +31,6 @@ def wrap_lines(font, text, max_width):
                 lines.append(candidate)
     return lines
 
-# ---------- 驗證規則 ----------
-ALLOWED_CODES = {
-    "30","31","32","33","34","35","36","37","38","39",
-    "44","45","54","57","59","65","81","82","83","84",
-    "A5","AC","AB","C0"
-}
-
 # ---------- 路由 ----------
 @app.route("/")
 def home():
@@ -50,30 +42,15 @@ def upload_photo():
     if not photo:
         return "❌ 沒有上傳照片"
 
-
     os.makedirs("uploads", exist_ok=True)
     photo_path = os.path.join("uploads", "student_card.png")
     photo.save(photo_path)
 
-    # 條碼辨識
-    img = Image.open(photo_path)
-    codes = decode(img)
+    # 暫時不用 pyzbar，直接給一個假學號
+    student_id = "A123456789"
 
-    if codes:
-        student_id = codes[0].data.decode("utf-8")
-
-        # ✅ 驗證第4+第5碼
-        if len(student_id) >= 5:
-            combo = student_id[3] + student_id[4]
-            if combo not in ALLOWED_CODES:
-                return f"❌ 學號驗證失敗：第4+5碼 {combo} 不在允許清單"
-        else:
-            return "❌ 學號長度不足，無法驗證"
-
-        # 通過 → 跳轉表單
-        return redirect(url_for("form", student_id=student_id))
-    else:
-        return "❌ 無法辨識 8Code，請確認照片清晰度"
+    # 通過 → 跳轉表單
+    return redirect(url_for("form", student_id=student_id))
 
 @app.route("/form")
 def form():
