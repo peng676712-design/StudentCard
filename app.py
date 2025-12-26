@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file, session
 from PIL import Image, ImageDraw, ImageFont
-import io
-import os
-import textwrap
+import io, os, textwrap, time
 
 app = Flask(__name__)
+app.secret_key = "your_secret_key"  # 必須設定 session key
+
+LOCK_DURATION = 600  # 10 分鐘 (秒)
 
 # ---------- 工具函式 ----------
 def fit_text(font_path, text, max_width, start_size, min_size=24):
@@ -40,30 +41,12 @@ ALLOWED_CODES = {
 
 # ---------- 科系對照表 ----------
 DEPT_MAP = {
-    "30": "機械工程系",
-    "31": "電機工程系",
-    "32": "化學工程系",
-    "33": "材料科學系",
-    "34": "土木工程系",
-    "35": "分子科學系",
-    "36": "電子工程系",
-    "37": "工業管理系",
-    "38": "工業設計系",
-    "39": "建築系",
-    "44": "車輛工程系",
-    "45": "能源工程系",
-    "54": "英文系",
-    "57": "經營管理系",
-    "59": "資訊工程系",
-    "65": "光電工程系",
-    "81": "機電學士班",
-    "82": "電資學士班",
-    "83": "工程科技學士班",
-    "84": "創意設計學士班",
-    "A5": "文化發展系",
-    "AC": "互動設計系",
-    "AB": "資訊財金系",
-    "C0": "機電學院"
+    "30": "機械工程系","31": "電機工程系","32": "化學工程系","33": "材料科學系",
+    "34": "土木工程系","35": "分子科學系","36": "電子工程系","37": "工業管理系",
+    "38": "工業設計系","39": "建築系","44": "車輛工程系","45": "能源工程系",
+    "54": "英文系","57": "經營管理系","59": "資訊工程系","65": "光電工程系",
+    "81": "機電學士班","82": "電資學士班","83": "工程科技學士班","84": "創意設計學士班",
+    "A5": "文化發展系","AC": "互動設計系","AB": "資訊財金系","C0": "機電學院"
 }
 
 # ---------- 路由 ----------
@@ -75,12 +58,35 @@ def home():
 def upload_photo():
     student_id = request.form.get("student_id", "").strip()
 
-    if len(student_id) != 9:
-        return "❌ 學號必須是 9 碼"
+    # 初始化 session
+    if "fail_count" not in session:
+        session["fail_count"] = 0
+        session["lock_until"] = 0
 
+    # 檢查是否封鎖中
+    if time.time() < session["lock_until"]:
+        return "❌ 嘗試錯誤過多，請 10 分鐘後再試"
+
+    # 驗證 1：是否為 9 碼
+    if len(student_id) != 9:
+        session["fail_count"] += 1
+        if session["fail_count"] >= 3:
+            session["lock_until"] = time.time() + LOCK_DURATION
+            return "❌ 輸入密碼錯誤三次，已封鎖 10 分鐘"
+        return "❌ 輸入密碼錯誤"
+
+    # 驗證 2：第 4+5 碼是否在允許清單
     combo = student_id[3] + student_id[4]
     if combo not in ALLOWED_CODES:
-        return f"❌ 學號驗證失敗：第4+5碼 {combo} 不在允許清單"
+        session["fail_count"] += 1
+        if session["fail_count"] >= 3:
+            session["lock_until"] = time.time() + LOCK_DURATION
+            return "❌ 輸入密碼錯誤三次，已封鎖 10 分鐘"
+        return "❌ 輸入密碼錯誤"
+
+    # 驗證成功 → 重置計數
+    session["fail_count"] = 0
+    session["lock_until"] = 0
 
     dept = DEPT_MAP.get(combo, "未知科系")
     return redirect(url_for("form", student_id=student_id, dept=dept))
