@@ -16,7 +16,15 @@
             <input type="text" name="student_id" value="{{ student_id }}" readonly><br>
 
             <label>系所：</label>
-            <input type="text" name="dept" required><br>
+            <input type="text" name="dept" value="{{ dept }}" readonly><br>
+
+            {% if dept == "互動設計系" %}
+            <label>組別：</label>
+            <select name="group" required>
+                <option value="視覺傳達組">視覺傳達組</option>
+                <option value="媒體設計組">媒體設計組</option>
+            </select><br>
+            {% endif %}
 
             <label>性別：</label>
             <select name="gender" required>

@@ -31,6 +31,41 @@ def wrap_lines(font, text, max_width):
                 lines.append(candidate)
     return lines
 
+# ---------- 驗證規則 ----------
+ALLOWED_CODES = {
+    "30","31","32","33","34","35","36","37","38","39",
+    "44","45","54","57","59","65","81","82","83","84",
+    "A5","AC","AB","C0"
+}
+
+# ---------- 科系對照表 ----------
+DEPT_MAP = {
+    "30": "機械工程系",
+    "31": "電機工程系",
+    "32": "化學工程系",
+    "33": "材料科學系",
+    "34": "土木工程系",
+    "35": "分子科學系",
+    "36": "電子工程系",
+    "37": "工業管理系",
+    "38": "工業設計系",
+    "39": "建築系",
+    "44": "車輛工程系",
+    "45": "能源工程系",
+    "54": "英文系",
+    "57": "經營管理系",
+    "59": "資訊工程系",
+    "65": "光電工程系",
+    "81": "機電學士班",
+    "82": "電資學士班",
+    "83": "工程科技學士班",
+    "84": "創意設計學士班",
+    "A5": "文化發展系",
+    "AC": "互動設計系",
+    "AB": "資訊財金系",
+    "C0": "機電學院"
+}
+
 # ---------- 路由 ----------
 @app.route("/")
 def home():
@@ -38,30 +73,30 @@ def home():
 
 @app.route("/upload_photo", methods=["POST"])
 def upload_photo():
-    photo = request.files.get("photo")
-    if not photo:
-        return "❌ 沒有上傳照片"
+    student_id = request.form.get("student_id", "").strip()
 
-    os.makedirs("uploads", exist_ok=True)
-    photo_path = os.path.join("uploads", "student_card.png")
-    photo.save(photo_path)
+    if len(student_id) != 9:
+        return "❌ 學號必須是 9 碼"
 
-    # 暫時不用 pyzbar，直接給一個假學號
-    student_id = "A123456789"
+    combo = student_id[3] + student_id[4]
+    if combo not in ALLOWED_CODES:
+        return f"❌ 學號驗證失敗：第4+5碼 {combo} 不在允許清單"
 
-    # 通過 → 跳轉表單
-    return redirect(url_for("form", student_id=student_id))
+    dept = DEPT_MAP.get(combo, "未知科系")
+    return redirect(url_for("form", student_id=student_id, dept=dept))
 
 @app.route("/form")
 def form():
     student_id = request.args.get("student_id", "")
-    return render_template("form.html", student_id=student_id)
+    dept = request.args.get("dept", "")
+    return render_template("form.html", student_id=student_id, dept=dept)
 
 @app.route("/generate", methods=["POST"])
 def generate():
     name = request.form.get("name", "").strip()
     student_id = request.form.get("student_id", "").strip()
     dept = request.form.get("dept", "").strip()
+    group = request.form.get("group", "").strip()
     gender = request.form.get("gender", "").strip()
     photo_file = request.files.get("photo")
 
@@ -98,28 +133,18 @@ def generate():
         user_img = user_img.resize((photo_w, photo_h), Image.LANCZOS)
         card.paste(user_img, (photo_x, photo_y))
 
-    # 側邊文字
-    side_texts = ["四年制大學部", "         ", "媒體設計組"]
+    # 側邊文字（含科系與組別）
+    side_texts = ["四年制大學部", dept]
+    if dept == "互動設計系" and group:
+        side_texts.append(group)
+
     side_font = ImageFont.truetype(font_path, int(H * 0.06))
     side_line_gap = int(H * 0.08)
     side_x = photo_x + photo_w + 30
-    side_start_y = photo_y + 40
+    side_start_y = photo_y + 80
     for i, line in enumerate(side_texts):
         y = side_start_y + i * side_line_gap
         draw.text((side_x, y), line, fill="black", font=side_font)
-
-    # 系所文字
-    base_dept_font = ImageFont.truetype(font_path, int(H * 0.065))
-    dept_lines = wrap_lines(base_dept_font, dept or "", W * 0.50)
-    if not dept_lines:
-        dept_lines = [""]
-    dept_lines = dept_lines[:3]
-    for i, line in enumerate(dept_lines):
-        f = fit_text(font_path, line, W * 0.50, start_size=base_dept_font.size)
-        line_w = f.getlength(line)
-        x = int(W * 0.43) - int(line_w / 2)
-        y = int(H * 0.37) + i * int(H * 0.075)
-        draw.text((x, y), line, fill="black", font=f)
 
     # 個人資訊
     info_font = ImageFont.truetype(font_path, int(H * 0.06))

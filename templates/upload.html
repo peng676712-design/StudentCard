@@ -7,33 +7,12 @@
 </head>
 <body class="upload-page">
     <div class="upload-box">
-        <!-- 圖案區塊，初始顯示 upload_icon -->
-        <label for="photo" class="upload-icon">
-            <img id="preview" src="{{ url_for('static', filename='assets/upload_icon.png') }}" alt="點我上傳">
-        </label>
-
-        <h1>上傳學生證照片</h1>
-        <form action="/upload_photo" method="post" enctype="multipart/form-data">
-            <input type="file" name="photo" id="photo" accept="image/*" required hidden>
+        <h1>學生證驗證</h1>
+        <form action="/upload_photo" method="post">
+            <!-- 學號輸入框 -->
+            <input type="text" name="student_id" placeholder="請輸入學號 (9碼)" required>
             <button type="submit">送出驗證</button>
         </form>
     </div>
-
-    <!-- JavaScript：即時預覽 -->
-    <script>
-        const photoInput = document.getElementById('photo');
-        const previewImg = document.getElementById('preview');
-
-        photoInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImg.src = e.target.result; // 換成上傳的圖片
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-    </script>
 </body>
 </html>
