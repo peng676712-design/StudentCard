@@ -8,6 +8,15 @@
 <body class="form-page">
     <div class="form-box">
         <h1>學生資料表單</h1>
+
+        <!-- 錯誤提示區塊 -->
+        {% if error %}
+        <div class="error-box" style="background:#ffecec; border:1px solid red; padding:10px; margin-bottom:15px; text-align:center;">
+            <p style="color:red;">{{ error }}</p>
+            <img src="{{ url_for('static', filename='assets/error-strategy.png') }}" alt="錯誤提示圖" style="width:150px;">
+        </div>
+        {% endif %}
+
         <form action="/generate" method="post" enctype="multipart/form-data">
             <label>姓名：</label>
             <input type="text" name="name" required><br>
@@ -18,12 +27,9 @@
             <label>系所：</label>
             <input type="text" name="dept" value="{{ dept }}" readonly><br>
 
-            {% if dept == "互動設計系" %}
+            {% if dept == "互動設計系" and group %}
             <label>組別：</label>
-            <select name="group" required>
-                <option value="視覺傳達組">視覺傳達組</option>
-                <option value="媒體設計組">媒體設計組</option>
-            </select><br>
+            <input type="text" name="group" value="{{ group }}" readonly><br>
             {% endif %}
 
             <label>性別：</label>

@@ -8,8 +8,20 @@
 <body class="upload-page">
     <div class="upload-box">
         <h1>學生證驗證</h1>
+
+        <!-- 錯誤提示區塊 -->
+        {% if error %}
+            <div class="error-box" style="background:#ffecec; border:1px solid red; padding:10px; margin-bottom:15px; text-align:center;">
+                <p style="color:red;">{{ error }}</p>
+                {% if remaining is defined and remaining > 0 %}
+                    <p style="color:red;">剩餘 {{ remaining }} 次機會</p>
+                {% endif %}
+                <img src="{{ url_for('static', filename='assets/error-strategy.png') }}" alt="錯誤提示圖" style="width:200px;">
+            </div>
+        {% endif %}
+
+        <!-- 學號輸入表單 -->
         <form action="/upload_photo" method="post">
-            <!-- 學號輸入框 -->
             <input type="text" name="student_id" placeholder="請輸入學號 (9碼)" required>
             <button type="submit">送出驗證</button>
         </form>

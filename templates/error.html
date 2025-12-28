@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>錯誤提示</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="error-page">
+    <div class="error-box" style="text-align:center; margin-top:100px;">
+        <img src="{{ url_for('static', filename='assets/error-strategy.png') }}" alt="錯誤提示圖" style="width:300px;">
+        <h2 style="color:red;">{{ message }}</h2>
+        {% if remaining > 0 %}
+            <p style="color:red;">剩餘 {{ remaining }} 次機會</p>
+        {% endif %}
+        <a href="{{ url_for('home') }}">
+            <button>返回重新輸入</button>
+        </a>
+    </div>
+</body>
+</html>

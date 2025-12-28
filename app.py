@@ -58,51 +58,60 @@ def home():
 def upload_photo():
     student_id = request.form.get("student_id", "").strip()
 
-    # 初始化 session
     if "fail_count" not in session:
         session["fail_count"] = 0
         session["lock_until"] = 0
 
-    # 檢查是否封鎖中
     if time.time() < session["lock_until"]:
-        return "❌ 嘗試錯誤過多，請 10 分鐘後再試"
+        return render_template("error.html", message="❌ 嘗試錯誤過多，請 10 分鐘後再試", remaining=0)
 
-    # 驗證 1：是否為 9 碼
-    if len(student_id) != 9:
+    # 驗證失敗
+    if len(student_id) != 9 or (student_id[3:5] not in ALLOWED_CODES):
         session["fail_count"] += 1
+        remaining = 3 - session["fail_count"]
+
         if session["fail_count"] >= 3:
             session["lock_until"] = time.time() + LOCK_DURATION
-            return "❌ 輸入密碼錯誤三次，已封鎖 10 分鐘"
-        return "❌ 輸入密碼錯誤"
+            return render_template("error.html", message="❌ 輸入錯誤三次，已封鎖 10 分鐘", remaining=0)
 
-    # 驗證 2：第 4+5 碼是否在允許清單
-    combo = student_id[3] + student_id[4]
-    if combo not in ALLOWED_CODES:
-        session["fail_count"] += 1
-        if session["fail_count"] >= 3:
-            session["lock_until"] = time.time() + LOCK_DURATION
-            return "❌ 輸入密碼錯誤三次，已封鎖 10 分鐘"
-        return "❌ 輸入密碼錯誤"
+        return render_template("error.html", message="❌ 學號輸入錯誤", remaining=remaining)
 
-    # 驗證成功 → 重置計數
+    # 驗證成功 → 存入 session
     session["fail_count"] = 0
     session["lock_until"] = 0
 
+    combo = student_id[3:5]
     dept = DEPT_MAP.get(combo, "未知科系")
-    return redirect(url_for("form", student_id=student_id, dept=dept))
+    group = ""
+
+    # 🔹 互動設計系第六碼判斷組別
+    if dept == "互動設計系":
+        sixth_digit = student_id[5]
+        if sixth_digit == "1":
+            group = "媒體設計組"
+        elif sixth_digit == "2":
+            group = "視覺傳達組"
+
+    # 存到 session，不放在網址
+    session["student_id"] = student_id
+    session["dept"] = dept
+    session["group"] = group
+
+    return redirect(url_for("form"))
 
 @app.route("/form")
 def form():
-    student_id = request.args.get("student_id", "")
-    dept = request.args.get("dept", "")
-    return render_template("form.html", student_id=student_id, dept=dept)
+    student_id = session.get("student_id", "")
+    dept = session.get("dept", "")
+    group = session.get("group", "")
+    return render_template("form.html", student_id=student_id, dept=dept, group=group)
 
 @app.route("/generate", methods=["POST"])
 def generate():
     name = request.form.get("name", "").strip()
-    student_id = request.form.get("student_id", "").strip()
-    dept = request.form.get("dept", "").strip()
-    group = request.form.get("group", "").strip()
+    student_id = session.get("student_id", "")
+    dept = session.get("dept", "")
+    group = session.get("group", "")
     gender = request.form.get("gender", "").strip()
     photo_file = request.files.get("photo")
 
@@ -117,29 +126,16 @@ def generate():
     if not os.path.exists(font_path):
         return "❌ 找不到字型檔：" + font_path
 
-    # 照片區塊
     photo_w, photo_h = 680, 817
     center_x, center_y = 425, 817
     photo_x = center_x - photo_w // 2
     photo_y = center_y - photo_h // 2
 
-    if photo_file:
+    if photo_file and photo_file.filename != "":
         user_img = Image.open(photo_file).convert("RGBA")
-        src_w, src_h = user_img.size
-        target_ratio = photo_w / photo_h
-        src_ratio = src_w / src_h
-        if src_ratio > target_ratio:
-            new_w = int(src_h * target_ratio)
-            left = (src_w - new_w) // 2
-            user_img = user_img.crop((left, 0, left + new_w, src_h))
-        else:
-            new_h = int(src_w / target_ratio)
-            top = (src_h - new_h) // 2
-            user_img = user_img.crop((0, top, src_w, top + new_h))
         user_img = user_img.resize((photo_w, photo_h), Image.LANCZOS)
         card.paste(user_img, (photo_x, photo_y))
 
-    # 側邊文字（含科系與組別）
     side_texts = ["四年制大學部", dept]
     if dept == "互動設計系" and group:
         side_texts.append(group)
@@ -152,7 +148,6 @@ def generate():
         y = side_start_y + i * side_line_gap
         draw.text((side_x, y), line, fill="black", font=side_font)
 
-    # 個人資訊
     info_font = ImageFont.truetype(font_path, int(H * 0.06))
     draw.text((photo_x, int(H * 0.82)), f"姓名: {name}", fill="black", font=info_font)
     draw.text((photo_x, int(H * 0.9)), f"學號: {student_id}", fill="black", font=info_font)
