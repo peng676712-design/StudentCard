@@ -39,6 +39,8 @@ ALLOWED_CODES = {
     "A5","AC","AB","C0"
 }
 
+ALLOWED_YEARS = {"114", "113", "112", "111"}
+
 # ---------- 科系對照表 ----------
 DEPT_MAP = {
     "30": "機械工程系","31": "電機工程系","32": "化學工程系","33": "材料科學系",
@@ -66,7 +68,9 @@ def upload_photo():
         return render_template("error.html", message="❌ 嘗試錯誤過多，請 10 分鐘後再試", remaining=0)
 
     # 驗證失敗
-    if len(student_id) != 9 or (student_id[3:5] not in ALLOWED_CODES):
+    year_code = student_id[:3]
+    mid_code = student_id[3:5]
+    if len(student_id) != 9 or year_code not in ALLOWED_YEARS or mid_code not in ALLOWED_CODES:
         session["fail_count"] += 1
         remaining = 3 - session["fail_count"]
 
@@ -80,8 +84,7 @@ def upload_photo():
     session["fail_count"] = 0
     session["lock_until"] = 0
 
-    combo = student_id[3:5]
-    dept = DEPT_MAP.get(combo, "未知科系")
+    dept = DEPT_MAP.get(mid_code, "未知科系")
     group = ""
 
     # 🔹 互動設計系第六碼判斷組別
@@ -92,10 +95,13 @@ def upload_photo():
         elif sixth_digit == "2":
             group = "視覺傳達組"
 
-    # 存到 session，不放在網址
+    gregorian_year = 1911 + int(year_code)
+
     session["student_id"] = student_id
     session["dept"] = dept
     session["group"] = group
+    session["minguo_year"] = year_code
+    session["gregorian_year"] = gregorian_year
 
     return redirect(url_for("form"))
 
@@ -104,7 +110,11 @@ def form():
     student_id = session.get("student_id", "")
     dept = session.get("dept", "")
     group = session.get("group", "")
-    return render_template("form.html", student_id=student_id, dept=dept, group=group)
+    minguo_year = session.get("minguo_year", "")
+    gregorian_year = session.get("gregorian_year", None)
+    return render_template("form.html",
+                           student_id=student_id, dept=dept, group=group,
+                           minguo_year=minguo_year, gregorian_year=gregorian_year)
 
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -113,6 +123,8 @@ def generate():
     dept = session.get("dept", "")
     group = session.get("group", "")
     gender = request.form.get("gender", "").strip()
+    minguo_year = session.get("minguo_year", "")
+    gregorian_year = session.get("gregorian_year", None)
     photo_file = request.files.get("photo")
 
     template_path = "static/templates/student_card.jpg"
@@ -139,6 +151,8 @@ def generate():
     side_texts = ["四年制大學部", dept]
     if dept == "互動設計系" and group:
         side_texts.append(group)
+    if minguo_year:
+        side_texts.append(f"民國 {minguo_year} 年")
 
     side_font = ImageFont.truetype(font_path, int(H * 0.06))
     side_line_gap = int(H * 0.08)
